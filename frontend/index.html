@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Diary</title><link rel="stylesheet" href="/css/diary.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Dancing+Script:wght@600&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&family=Homemade+Apple&family=Playfair+Display:ital,wght@0,600;1,500&family=Cormorant+Garamond:wght@500;600&family=EB+Garamond:wght@400;500&family=Libre+Baskerville&family=Lora:wght@400;500&family=Merriweather:wght@300;400&family=Nunito:wght@400;600&family=Quicksand:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    .page-grid{grid-template-columns:minmax(0,1fr) 340px}.rhythm-total{display:flex;align-items:baseline;gap:8px;margin:18px 0 20px}.rhythm-total strong{font-size:2.4rem;font-weight:400;color:var(--rose-dark)}.rhythm-total span,.rhythm-caption{font:12px Arial;color:var(--muted)}.heatmap{grid-template-columns:repeat(7,1fr);gap:9px 6px}.rhythm-day{display:grid}.heatmap i{display:grid;place-items:center;width:100%;aspect-ratio:1;border-radius:7px;background:#f4dfe0;transition:.2s;cursor:pointer}.rhythm-day time{font:600 10px Arial;color:#8e6970;white-space:nowrap}.heatmap i.on{background:linear-gradient(145deg,#e69298,#b9576c);box-shadow:0 4px 10px #d8798366}.heatmap i.on time{color:#fff}.heatmap i:hover{transform:translateY(-2px);box-shadow:0 5px 12px #6f4b3630}
+    .editor{width:100%;height:512px;min-height:512px;max-height:512px;padding:0;margin:0;border:0;outline:0;background:repeating-linear-gradient(to bottom,transparent 0px,transparent 31px,var(--line) 31px,var(--line) 32px);background-size:100% 32px;line-height:32px;font-size:1.15rem;resize:none;overflow:hidden;white-space:pre-wrap;word-break:break-word;box-sizing:border-box}.editor div,.editor p{margin:0;padding:0;line-height:32px;min-height:32px}.editor.dragging{background:var(--cream);outline:2px dashed var(--rose);outline-offset:10px}.editor:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}.editor img,.editor video{display:block;width:100%;max-width:min(100%,420px);height:224px;margin:16px 0;border-radius:12px;object-fit:cover;box-sizing:border-box}.editor audio{display:block;width:min(100%,360px);height:48px;margin:8px 0;box-sizing:border-box}.rhythm-total strong{font-size:2.4rem}.media-dropzone{display:none}.media-preview{display:none}.emoji-picker{display:flex;flex-wrap:wrap;gap:5px;padding-top:12px}.emoji-picker button{background:var(--cream);border-radius:7px;padding:7px;font-size:1.15rem}.auth-error{min-height:18px;margin:0;color:#b53e52;font:600 13px Arial}.settings-themes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.theme-choice{background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:11px;text-align:left;font:13px Arial}.theme-choice:hover{border-color:var(--rose);transform:translateY(-1px)}
+    .theme-menu{position:relative}.theme-options{position:absolute;right:0;top:42px;z-index:4;display:grid;min-width:150px;padding:6px;background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px #6f4b3626}.theme-options button{background:transparent;text-align:left;padding:9px 11px;border-radius:6px;font:13px Arial}.theme-options button:hover{background:var(--cream)}
+    body.theme-night{--ink:#f2eee7;--muted:#a8aaa7;--paper:#1f272d;--cream:#2b363d;--line:#43525a;--rose:#83c9c6;--rose-dark:#4eaaa9;--body-bg:radial-gradient(circle at 78% 0,#1e3e43,transparent 32%),linear-gradient(145deg,#0b1014,#172127);background:var(--body-bg)}body.theme-cinematic{--ink:#e8f1ff;--muted:#9fb5d2;--paper:#172943;--cream:#213958;--line:#345477;--rose:#73b9ff;--rose-dark:#4389d5;--body-bg:radial-gradient(circle at 78% 0,#244e78,transparent 34%),linear-gradient(145deg,#081528,#142c49);background:var(--body-bg)}body.theme-pink{--ink:#4a2938;--muted:#9f687f;--paper:#fff7fb;--cream:#fbe1ed;--line:#f1c5d8;--rose:#ec82ac;--rose-dark:#c94e83;--body-bg:linear-gradient(135deg,#fff0f6,#f9d8e8);background:var(--body-bg)}body.theme-classic{--ink:#2e2922;--muted:#796e5e;--paper:#f5ecd8;--cream:#e8dcc0;--line:#d2c19e;--rose:#92764c;--rose-dark:#675035;--body-bg:linear-gradient(135deg,#ded1ae,#f3ead6);background:var(--body-bg)}body.theme-night .sidebar,body.theme-cinematic .sidebar{background:#111e31dd}body.theme-night input,body.theme-night textarea,body.theme-night select{background:#263239;color:var(--ink)}body.theme-cinematic input,body.theme-cinematic textarea,body.theme-cinematic select{background:#213958;color:var(--ink)}
+  </style>
+<style>.sidebar nav .logout{margin-top:0;border:1px solid transparent}.sidebar nav .logout:hover{border-color:var(--line);background:var(--cream);color:var(--rose-dark)}</style>
+<style>.modal{position:fixed;inset:0;display:grid;place-items:center;padding:20px;background:rgba(40,28,34,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:99999}.modal.hidden{display:none}.modal-card{position:relative;width:min(440px,100%);display:grid;gap:16px;padding:30px;background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 70px #3b293333}.modal-close{position:absolute;right:16px;top:12px;background:transparent;font-size:1.5rem;color:var(--muted)}.icon-choices,.color-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.icon-choices button{width:38px;height:38px;background:var(--cream);border:1px solid var(--line);border-radius:8px;font-size:1.1rem}.icon-choices button.selected{border-color:var(--rose);box-shadow:0 0 0 2px var(--rose)}.color-choices button{width:32px;height:32px;background:var(--swatch);border:3px solid var(--paper);outline:1px solid var(--line);border-radius:50%}.color-choices button.selected{outline:2px solid var(--ink);outline-offset:2px}.archive-item{cursor:pointer;transition:.2s}.archive-item:hover{border-color:var(--rose);transform:translateY(-2px)}.archive-delete{background:transparent;color:var(--muted);padding:6px 8px;border:1px solid var(--line);border-radius:6px}.archive-delete:hover{color:#b53e52;border-color:#b53e52}
+.confirm-modal-card{width:min(400px,92vw);text-align:center;padding:32px 28px 26px;border-radius:22px;background:var(--paper);border:1.5px solid #fff;box-shadow:0 24px 70px rgba(45,25,35,.28),0 4px 16px rgba(0,0,0,.08);animation:confirmPopCenter .24s cubic-bezier(.16,1,.3,1)}
+@keyframes confirmPopCenter{from{opacity:0;transform:scale(.92) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.confirm-icon-pill{width:56px;height:56px;border-radius:50%;background:#fde8ee;color:#b53e52;display:grid;place-items:center;font-size:24px;margin:0 auto 16px;box-shadow:0 4px 14px rgba(181,62,82,.2)}
+.confirm-modal-title{font-size:1.5rem;font-weight:700;color:var(--ink);margin:0 0 8px;font-family:Georgia,serif}
+.confirm-modal-text{font:14.5px/1.55 Arial,sans-serif;color:var(--muted);margin:0 0 24px}
+.confirm-modal-actions{display:flex;gap:12px;justify-content:center}
+.confirm-btn{flex:1;padding:12px 18px;border-radius:12px;font:600 14px Arial,sans-serif;cursor:pointer;transition:all .18s ease;border:0}
+.confirm-btn:hover{transform:translateY(-1px)}
+.confirm-btn-cancel{background:var(--cream);color:var(--ink);border:1px solid var(--line)}
+.confirm-btn-danger{background:#c94054;color:#fff;box-shadow:0 4px 14px rgba(201,64,84,.3)}
+.confirm-btn-danger:hover{background:#b03244;box-shadow:0 6px 18px rgba(201,64,84,.45)}
+body.theme-night .confirm-icon-pill,body.theme-cinematic .confirm-icon-pill{background:#3d2328;color:#f7a5b9}</style>
+  <style>.archive-item{position:relative;grid-template-columns:130px 1fr auto auto auto;padding-top:28px}.archive-category{position:absolute;right:16px;top:10px;color:var(--rose-dark);font:600 10px Arial;text-transform:uppercase;letter-spacing:.08em}.archive-delete{position:relative;z-index:1}@media(max-width:760px){.archive-item{grid-template-columns:1fr;padding-top:34px}.archive-category{right:16px;top:10px}}</style>
+  <style>.archive-back{margin-bottom:20px}.archive-group{display:grid;gap:12px;margin:0 0 24px}.archive-group h3{font-size:1.35rem;color:var(--rose-dark);padding-bottom:8px;border-bottom:1px solid var(--line)}.archive-entry-detail{background:var(--paper);border:1px solid #fff;border-radius:12px;padding:18px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s cubic-bezier(.16,1,.3,1);position:relative}.archive-entry-detail:hover{border-color:var(--rose);transform:translateY(-2px);box-shadow:0 10px 25px rgba(111,75,54,.1)}.archive-entry-head{display:flex;align-items:center;gap:14px}.archive-entry-head strong{font-size:1.08rem;color:var(--ink)}.archive-entry-actions{display:flex;align-items:center;gap:8px;margin-left:auto}.archive-edit-btn{background:var(--cream);color:var(--rose-dark);padding:6px 12px;border:1px solid var(--line);border-radius:7px;font:600 12px Arial,sans-serif;cursor:pointer;transition:all .15s ease}.archive-edit-btn:hover{border-color:var(--rose);background:#fff;transform:translateY(-1px)}.archive-entry-content{margin-top:14px;line-height:1.7}.archive-entry-content img,.archive-entry-content video{max-width:260px;max-height:180px;border-radius:9px}.archive-entry-content audio{max-width:300px}.archive-bottom-actions{display:flex;justify-content:flex-end;margin-top:24px;padding-top:18px;border-top:1px solid var(--line)}.delete-all-btn{background:var(--cream);color:#b53e52;border:1px solid rgba(181,62,82,.35);border-radius:10px;padding:10px 18px;font:600 13px Arial,sans-serif;cursor:pointer;transition:all .2s ease;display:inline-flex;align-items:center;gap:6px}.delete-all-btn:hover{background:#fde8ee;border-color:#b53e52;transform:translateY(-1px)}
+.page-reader-card{width:min(720px,94vw);max-height:88vh;display:flex;flex-direction:column;padding:0;border-radius:20px;background:var(--paper);border:1.5px solid #fff;box-shadow:0 24px 70px rgba(45,25,35,.3),0 4px 16px rgba(0,0,0,.08);overflow:hidden;animation:confirmPopCenter .22s cubic-bezier(.16,1,.3,1)}
+.page-reader-head{padding:24px 28px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;background:var(--cream)}
+.page-reader-head .eyebrow{margin:0 0 4px}
+.page-reader-title{font-size:1.6rem;font-weight:700;color:var(--ink);margin:0 0 4px;font-family:Georgia,serif}
+.page-reader-sub{display:flex;align-items:center;gap:12px;font:13px Arial,sans-serif;color:var(--muted)}
+.page-reader-body{flex:1;overflow-y:auto;padding:28px;font-family:var(--entry-font,Georgia,serif);font-size:1.15rem;line-height:32px;color:var(--ink);white-space:pre-wrap;word-break:break-word;background:repeating-linear-gradient(to bottom,transparent 0px,transparent 31px,var(--line) 31px,var(--line) 32px);background-size:100% 32px;user-select:text}
+.page-reader-body img,.page-reader-body video{max-width:min(100%,420px);width:100%;height:224px;border-radius:12px;display:block;margin:16px 0;object-fit:cover;box-sizing:border-box}
+.page-reader-body audio{max-width:min(100%,360px);height:48px;display:block;margin:8px 0;box-sizing:border-box}
+.page-reader-foot{padding:16px 28px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:var(--paper);gap:12px}
+.reader-btn-edit{background:var(--rose-dark);color:#fff;padding:10px 20px;border-radius:10px;font:600 14px Arial,sans-serif;box-shadow:0 4px 12px rgba(169,77,98,.25);cursor:pointer;transition:all .18s ease;border:0}
+.reader-btn-edit:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(169,77,98,.4)}</style>
+  <style>.category-mode #entryMeta,.category-mode #entryTags{display:none}.category-mode .paper{padding-top:34px}.category-mode #entryText{height:512px;min-height:512px;max-height:512px}</style>
+  <style>.paper:before{content:'My Diary';display:block;margin-bottom:18px;color:var(--rose-dark);font:600 .72rem Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase}.paper-head,.tag-row{display:none!important}</style>
+  <style>:root{--entry-font:Georgia,'Times New Roman',serif;--heading-font:Georgia,'Times New Roman',serif}.editor{font-family:var(--entry-font)}.paper:before,h1,h2,h3,.brand strong{font-family:var(--heading-font)}#saveEntry{display:none}.paper-column{display:flex;flex-direction:column;gap:10px;min-width:0}.paper-outer-bar{display:flex;justify-content:flex-end;align-items:center;padding:0 4px}.paper-foot{display:flex;align-items:center;gap:12px;width:100%}.paper-foot #previousPage{margin-right:0}.paper-foot #nextPage{margin-left:auto}.page-indicator{font:600 12px Arial,sans-serif;color:var(--muted);background:var(--cream);padding:6px 14px;border-radius:20px;border:1px solid var(--line);white-space:nowrap;user-select:none;box-shadow:0 2px 8px rgba(0,0,0,.04)}.emoji-picker{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow-y:auto;padding:12px;background:var(--paper);border:1px solid var(--line);border-radius:12px;margin-top:10px}.emoji-picker button{background:var(--cream);border:0;border-radius:8px;padding:8px;font-size:1.25rem;cursor:pointer;line-height:1;transition:transform .15s}.emoji-picker button:hover{transform:scale(1.2)}.font-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.font-choice{background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:left}.font-choice.selected{border-color:var(--rose);box-shadow:0 0 0 2px var(--rose)}</style>
+  <style>.auth-link{background:none;border:none;padding:2px 0;color:var(--rose-dark);font:12px Arial,sans-serif;cursor:pointer;text-decoration:none;transition:color .2s}.auth-link:hover{text-decoration:underline;color:var(--ink)}</style>
+  <style>
+    .onboarding{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--body-bg,radial-gradient(circle at 15% 0,#fff8f1 0,transparent 32%),linear-gradient(135deg,#f7eee8,#f5e1e4))}.onboarding.hidden{display:none}
+    .onboarding-card{width:min(420px,100%);padding:42px 32px;background:var(--paper,#fffdfa);border:1.5px solid rgba(255,255,255,.6);border-radius:28px;box-shadow:0 24px 70px rgba(111,75,54,.1);text-align:center}
+    .notebook-badge{width:58px;height:58px;margin:0 auto 20px;border-radius:18px;background:var(--cream,#e8edf3);border:1.5px solid var(--line,#dde3ea);box-shadow:0 10px 25px rgba(60,40,30,.08);display:grid;place-items:center;font-size:1.3rem;color:var(--rose-dark,#a94d62)}
+    .onboarding-card .eyebrow{font:600 .72rem Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--rose-dark,#8a7c74);margin:0 0 10px}
+    .onboarding-card h1{font-family:'Playfair Display',Georgia,serif;font-size:2.8rem;font-weight:600;color:var(--ink,#2c221e);margin:0 0 8px;letter-spacing:-.01em;line-height:1.15}
+    .onboarding-subtitle{color:var(--muted,#6e635d);font:14.5px Arial,sans-serif;margin:0 0 26px}
+    .onboarding-choices{display:grid;gap:12px;margin-bottom:20px}
+    .choice-card{display:block;cursor:pointer;position:relative}
+    .choice-card input{position:absolute;opacity:0;pointer-events:none}
+    .choice-inner{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--paper,#fffdfb);border:1.5px solid var(--line,#ece4de);border-radius:18px;transition:all .22s cubic-bezier(.16,1,.3,1);user-select:none}
+    .choice-radio{width:20px;height:20px;border:1.5px solid var(--line,#d4c8c0);border-radius:50%;display:grid;place-items:center;background:var(--cream,#fff);flex-shrink:0;transition:all .2s ease}
+    .choice-radio::after{content:'';width:10px;height:10px;border-radius:50%;background:transparent;transition:all .2s ease}
+    .choice-badge{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+    .choice-text{font:700 15px Arial,sans-serif;color:var(--ink,#2c221e);flex:1;text-align:left}
+    
+    /* Female - Pink */
+    .badge-female{background:#fde8ee}
+    .choice-female:hover .choice-inner{border-color:#f8a5c2;background:color-mix(in srgb,var(--paper) 80%,#fde8ee);box-shadow:0 6px 18px rgba(248,165,194,.25);transform:translateY(-1px)}
+    .choice-female:hover .choice-radio{border-color:#f78fb3}
+    .choice-female input:checked+.choice-inner{border-color:#f5789f;background:color-mix(in srgb,var(--paper) 70%,#fde8ee);box-shadow:0 0 0 2px rgba(245,120,159,.25)}
+    .choice-female input:checked+.choice-inner .choice-radio{border-color:#f5789f}
+    .choice-female input:checked+.choice-inner .choice-radio::after{background:#f5789f}
+    
+    /* Male - Green */
+    .badge-male{background:#e8f5e9}
+    .choice-male:hover .choice-inner{border-color:#a3d9a5;background:color-mix(in srgb,var(--paper) 80%,#e8f5e9);box-shadow:0 6px 18px rgba(163,217,165,.25);transform:translateY(-1px)}
+    .choice-male:hover .choice-radio{border-color:#81c784}
+    .choice-male input:checked+.choice-inner{border-color:#66bb6a;background:color-mix(in srgb,var(--paper) 70%,#e8f5e9);box-shadow:0 0 0 2px rgba(102,187,106,.25)}
+    .choice-male input:checked+.choice-inner .choice-radio{border-color:#66bb6a}
+    .choice-male input:checked+.choice-inner .choice-radio::after{background:#66bb6a}
+    
+    /* Prefer not to say - Lavender */
+    .badge-prefer{background:#ede7f6}
+    .choice-prefer:hover .choice-inner{border-color:#c5b3e6;background:color-mix(in srgb,var(--paper) 80%,#ede7f6);box-shadow:0 6px 18px rgba(197,179,230,.25);transform:translateY(-1px)}
+    .choice-prefer:hover .choice-radio{border-color:#9575cd}
+    .choice-prefer input:checked+.choice-inner{border-color:#7e57c2;background:color-mix(in srgb,var(--paper) 70%,#ede7f6);box-shadow:0 0 0 2px rgba(126,87,194,.25)}
+    .choice-prefer input:checked+.choice-inner .choice-radio{border-color:#7e57c2}
+    .choice-prefer input:checked+.choice-inner .choice-radio::after{background:#7e57c2}
+    
+    /* Age: 8 to 18 - Honey/Amber */
+    .badge-age-young{background:#fef3c7}
+    .choice-age-young:hover .choice-inner{border-color:#fcd34d;background:color-mix(in srgb,var(--paper) 80%,#fef3c7);box-shadow:0 6px 18px rgba(245,158,11,.22);transform:translateY(-1px)}
+    .choice-age-young:hover .choice-radio{border-color:#f59e0b}
+    .choice-age-young input:checked+.choice-inner{border-color:#f59e0b;background:color-mix(in srgb,var(--paper) 70%,#fef3c7);box-shadow:0 0 0 2px rgba(245,158,11,.25)}
+    .choice-age-young input:checked+.choice-inner .choice-radio{border-color:#f59e0b}
+    .choice-age-young input:checked+.choice-inner .choice-radio::after{background:#f59e0b}
+    
+    /* Age: 19 to 25 - Pink/Sunset */
+    .badge-age-mid{background:#fce7f3}
+    .choice-age-mid:hover .choice-inner{border-color:#f472b6;background:color-mix(in srgb,var(--paper) 80%,#fce7f3);box-shadow:0 6px 18px rgba(244,114,182,.22);transform:translateY(-1px)}
+    .choice-age-mid:hover .choice-radio{border-color:#ec4899}
+    .choice-age-mid input:checked+.choice-inner{border-color:#db2777;background:color-mix(in srgb,var(--paper) 70%,#fce7f3);box-shadow:0 0 0 2px rgba(219,39,119,.25)}
+    .choice-age-mid input:checked+.choice-inner .choice-radio{border-color:#db2777}
+    .choice-age-mid input:checked+.choice-inner .choice-radio::after{background:#db2777}
+    
+    /* Age: 25+ - Sky/Sage */
+    .badge-age-adult{background:#e0f2fe}
+    .choice-age-adult:hover .choice-inner{border-color:#7dd3fc;background:color-mix(in srgb,var(--paper) 80%,#e0f2fe);box-shadow:0 6px 18px rgba(14,165,233,.22);transform:translateY(-1px)}
+    .choice-age-adult:hover .choice-radio{border-color:#0284c7}
+    .choice-age-adult input:checked+.choice-inner{border-color:#0284c7;background:color-mix(in srgb,var(--paper) 70%,#e0f2fe);box-shadow:0 0 0 2px rgba(2,132,199,.25)}
+    .choice-age-adult input:checked+.choice-inner .choice-radio{border-color:#0284c7}
+    .choice-age-adult input:checked+.choice-inner .choice-radio::after{background:#0284c7}
+    
+    /* Continue button */
+    .onboarding-btn{width:100%;padding:15px;border-radius:16px;border:0;font:700 16px Arial,sans-serif;color:var(--ink,#3b2a22);background:linear-gradient(135deg,var(--rose,#fcd9cc) 0%,var(--cream,#fde4c8) 100%);box-shadow:0 6px 20px rgba(240,180,150,.35);cursor:pointer;transition:all .2s ease;margin-top:8px}
+    .onboarding-btn:hover{box-shadow:0 8px 24px rgba(240,180,150,.55);transform:translateY(-1px)}
+    .onboarding-btn:active{transform:translateY(0)}
+
+    /* Introduction page styles */
+    .onboarding-intro-card{width:min(440px,94vw);display:flex;justify-content:center;align-items:center;animation:introPopIn .35s cubic-bezier(.16,1,.3,1)}
+    @keyframes introPopIn{from{opacity:0;transform:scale(.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .intro-art-container{position:relative;width:100%;aspect-ratio:682/1024;border-radius:36px;overflow:hidden;box-shadow:0 24px 70px rgba(80,50,40,.2),0 8px 24px rgba(0,0,0,.06);user-select:none}
+    .intro-artwork{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+    .intro-avatar-circle{position:absolute;top:20.02%;left:31.82%;width:36.36%;aspect-ratio:1/1;border-radius:50%;overflow:hidden;pointer-events:auto;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .intro-avatar-img{width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%;display:block}
+    .intro-camera-badge{position:absolute;top:35.5%;left:55.5%;width:12%;aspect-ratio:1;border-radius:50%;cursor:pointer;z-index:12;transition:transform .2s,box-shadow .2s}
+    .intro-camera-badge:hover{transform:scale(1.15);box-shadow:0 0 0 4px rgba(255,255,255,.7),0 4px 12px rgba(0,0,0,.15)}
+    .intro-camera-badge:active{transform:scale(1.05)}
+    .intro-name-box{position:absolute;top:48.1%;left:12.8%;width:74.4%;height:7.4%;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border:1.5px solid var(--intro-input-border,#c9b9dd);border-radius:9999px;display:flex;align-items:center;padding:0 16px;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.04);transition:border-color .2s,box-shadow .2s;z-index:8}
+    .intro-name-box:focus-within{border-color:var(--intro-focus-border,#745d9c);box-shadow:0 0 0 3px var(--intro-ring,rgba(116,93,156,.25))}
+    .intro-name-icon{display:flex;align-items:center;color:var(--intro-icon-color,#745d9c);flex-shrink:0}
+    .intro-name-divider{width:1px;height:48%;background:var(--intro-input-border,#c9b9dd);opacity:.6}
+    .intro-name-box input{flex:1;background:transparent!important;border:0;outline:none;font:500 1.05rem Arial,sans-serif;color:var(--ink,#2c221e);padding:0;min-width:0;line-height:1.2}
+    .intro-name-box input::placeholder{color:var(--muted,#9c8e88)}
+    .intro-continue-btn{position:absolute;top:60.8%;left:10.8%;width:78.4%;height:8.2%;border-radius:9999px;border:0;background:var(--intro-btn-bg,#745d9c);color:#fff;font:600 1.25rem Arial,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px var(--intro-btn-shadow,rgba(116,93,156,.45));transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s;z-index:10;user-select:none}
+    .intro-continue-btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 12px 30px var(--intro-btn-shadow,rgba(116,93,156,.6))}
+    .intro-continue-btn:active{transform:translateY(0) scale(.99)}
+
+    .theme-intro-young{--intro-input-border:#c9b9dd;--intro-focus-border:#745d9c;--intro-ring:rgba(116,93,156,.25);--intro-icon-color:#745d9c;--intro-btn-bg:#745d9c;--intro-btn-shadow:rgba(116,93,156,.45)}
+    .theme-intro-mid{--intro-input-border:#d4b2be;--intro-focus-border:#715160;--intro-ring:rgba(113,81,96,.25);--intro-icon-color:#715160;--intro-btn-bg:#715160;--intro-btn-shadow:rgba(113,81,96,.45)}
+    .theme-intro-adult{--intro-input-border:#b8c4af;--intro-focus-border:#464e39;--intro-ring:rgba(70,78,57,.25);--intro-icon-color:#464e39;--intro-btn-bg:#464e39;--intro-btn-shadow:rgba(70,78,57,.45)}
+
+    .avatar-display{position:relative;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .user-avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--rose);flex-shrink:0;display:block}
+    .brand-badge-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--rose);background:var(--cream);border:1.5px solid var(--rose);transition:all .2s ease}
+    .avatar-camera-overlay{display:none}
+    .toast{position:fixed;top:26px;right:28px;z-index:99999;background:rgba(45,33,38,.94);color:#fff;padding:11px 22px;border-radius:9999px;font:600 13px / 1.4 Arial,-apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em;box-shadow:0 14px 34px rgba(45,25,35,.28),0 2px 6px rgba(0,0,0,.12);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.16);display:flex;align-items:center;gap:9px;pointer-events:none;opacity:0;transform:translateY(-16px) scale(.95);transition:opacity .28s cubic-bezier(.16,1,.3,1),transform .28s cubic-bezier(.16,1,.3,1)}
+    .toast.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+    .toast::before{content:'✦';color:#f7a5b9;font-size:13px}
+
+    /* FAQ Section Styles */
+    .faq-container{display:grid;gap:24px;max-width:840px}
+    .faq-card{background:var(--paper);border:1px solid #fff;border-radius:18px;padding:28px;box-shadow:var(--shadow)}
+    .faq-card-head{margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:12px}
+    .faq-card-head h3{font-size:1.4rem;color:var(--ink);margin:4px 0 0}
+    .faq-list{display:grid;gap:14px}
+    .faq-item{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:16px 18px;transition:all .2s ease}
+    .faq-item:hover{border-color:var(--rose);transform:translateY(-1px)}
+    .faq-question{font-weight:700;font-size:1rem;color:var(--ink);margin:0 0 6px;display:flex;align-items:center;gap:8px}
+    .faq-question::before{content:'✦';color:var(--rose-dark);font-size:11px}
+    .faq-answer{font-family:Arial,sans-serif;font-size:.92rem;line-height:1.6;color:var(--muted);margin:0}
+    .dev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:14px}
+    .dev-card{background:var(--cream);border:1px solid var(--line);border-radius:16px;padding:24px 18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;transition:all .25s cubic-bezier(.16,1,.3,1)}
+    .dev-card:hover{transform:translateY(-3px);border-color:var(--rose);box-shadow:0 12px 28px rgba(111,75,54,.08)}
+    .dev-avatar-pill{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#fcd9cc,#fde4c8);border:2px solid #fff;display:grid;place-items:center;font-size:1.35rem;box-shadow:0 4px 12px rgba(216,121,131,.2)}
+    .dev-role{display:inline-block;background:var(--paper);color:var(--rose-dark);border:1px solid var(--line);border-radius:20px;padding:4px 12px;font:600 11px Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em}
+    .dev-name{font-size:1.25rem;font-weight:700;color:var(--ink);margin:0;font-family:Georgia,serif}
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+  <div id="auth" class="auth-screen"><div class="auth-card"><p class="eyebrow">A quiet place for your thoughts</p><h1>My Diary</h1><form id="authForm"></form></div></div>
+  <div id="onboarding" class="onboarding hidden">
+    <section id="onboardingCard" class="onboarding-card"><div class="notebook-badge">✦</div><p class="eyebrow" id="onboardingEyebrow">ONE SMALL DETAIL</p><h1 id="onboardingTitle">About you</h1><p class="onboarding-subtitle" id="onboardingSubtitle">How would you like to identify?</p><form id="onboardingForm"><div id="genderChoices" class="onboarding-choices"><label class="choice-card choice-female"><input type="radio" name="gender" value="female"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-female">🌸</span><span class="choice-text">Female</span></div></label><label class="choice-card choice-male"><input type="radio" name="gender" value="male"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-male">🌿</span><span class="choice-text">Male</span></div></label><label class="choice-card choice-prefer"><input type="radio" name="gender" value="prefer-not-to-say"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-prefer">✦</span><span class="choice-text">Prefer not to say</span></div></label></div><div id="ageChoices" class="onboarding-choices hidden"><label class="choice-card choice-age-young"><input type="radio" name="age_range" value="8-18"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-age-young">🌱</span><span class="choice-text">8 to 18</span></div></label><label class="choice-card choice-age-mid"><input type="radio" name="age_range" value="19-25"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-age-mid">✨</span><span class="choice-text">19 to 25</span></div></label><label class="choice-card choice-age-adult"><input type="radio" name="age_range" value="25+"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-age-adult">🪴</span><span class="choice-text">25+</span></div></label></div><p id="onboardingError" class="auth-error"></p><button class="onboarding-btn" type="submit">Continue</button><div class="onboarding-nav-row" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px"><button type="button" class="auth-link" id="onboardingBackBtn" style="display:none;background:none;border:none;cursor:pointer;color:var(--rose-dark);font:600 13px Arial">← Back</button><button type="button" class="auth-link" id="onboardingSignOutBtn" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font:13px Arial">Sign out</button></div></form></section>
+    <section id="onboardingIntro" class="onboarding-intro-card hidden">
+      <div class="intro-art-container">
+        <img id="introArtwork" class="intro-artwork" src="/assets/intro/intro_8_18.png" alt="Intro Card">
+        <div id="introAvatarCircle" class="intro-avatar-circle">
+          <img id="introAvatarImg" class="intro-avatar-img hidden" src="" alt="Profile avatar">
+        </div>
+        <label for="introPhotoInput" class="intro-camera-badge" title="Upload custom photo">
+          <input id="introPhotoInput" type="file" accept="image/*" hidden>
+        </label>
+        <div class="intro-name-box">
+          <span class="intro-name-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </span>
+          <span class="intro-name-divider"></span>
+          <input id="introNameInput" type="text" placeholder="Name" maxlength="40" autocomplete="name" style="color:#2c221e!important">
+        </div>
+        <button id="introContinueBtn" type="button" class="intro-continue-btn">Continue →</button>
+      </div>
+    </section>
+  </div>
+  <div id="app" class="app hidden">
+    <aside class="sidebar"><div class="brand"><div class="avatar-display"><img id="userAvatar" class="user-avatar hidden" src="" alt="Avatar"><span id="brandBadge" class="brand-badge-icon">✦</span></div><div><strong id="brandTitle">My Note Diary</strong><small id="userName"></small></div></div><nav><button class="nav active" data-view="pages">▤ <span>Pages</span></button><button class="nav" data-view="categories">◈ <span>Categories</span></button><button class="nav" data-view="archive">◷ <span>Archive</span></button><button class="nav" data-view="settings">⚙ <span>Settings</span></button><button class="nav" data-view="faq">✦ <span>FAQ</span></button><button id="logout" class="nav logout">↪ <span>Sign out</span></button></nav></aside>
+    <main><header class="topbar"><div><p class="eyebrow" id="todayLabel"></p><h2 id="viewTitle">Today’s page</h2></div><div class="top-actions"><button id="newEntry" class="primary">＋ New page</button></div></header>
+      <section id="pagesView" class="view"><div class="page-grid"><div class="paper-column"><div class="paper"><div class="paper-head"><input id="entryTitle" placeholder="Untitled page"><select id="mood"><option>😊</option><option>🌿</option><option>✨</option><option>😔</option><option>🔥</option><option>🌙</option></select></div><div class="tag-row"><input id="tags" placeholder="Add tags, separated by commas"><span id="saveState">Saved</span></div><div id="entryText" class="editor" contenteditable="true" data-placeholder="What is on your mind today?"></div><div id="mediaDropzone" class="media-dropzone"><strong>Drop a memory here</strong><span>Image, video, or audio</span></div><div id="mediaPreview" class="media-preview"></div><div class="paper-foot"><button id="previousPage" class="secondary" type="button">← Previous</button><button id="emojiButton" class="secondary" type="button">▧ Stickers</button><button id="recordVoice" class="secondary" type="button">● Voice</button><label class="upload secondary">＋ Add media<input id="media" type="file" accept="image/*,video/*,audio/*" hidden></label><button id="nextPage" class="secondary" type="button">Next →</button><button id="saveEntry" class="primary" style="display:none">Save page</button></div><div id="emojiPicker" class="emoji-picker hidden"></div></div><div class="paper-outer-bar"><span id="pageIndicator" class="page-indicator">Page 1 of 1 · 0/16 lines</span></div></div><aside class="side-note"><p class="eyebrow">Your rhythm</p><div class="rhythm-total"><strong id="entryCount">0</strong><span>pages today</span></div><div id="heatmap" class="heatmap"></div><p class="muted rhythm-caption">Your last 35 days</p></aside></div></section>
+      <section id="categoriesView" class="view hidden"><div class="section-head"><div><p class="eyebrow">Organize your chapters</p><h3>Categories</h3></div><button id="addCategory" class="primary">＋ Add category</button></div><div id="categoryList" class="category-list"></div></section>
+      <section id="archiveView" class="view hidden"><div class="section-head"><div><p class="eyebrow">Look back gently</p><h3>Archive</h3></div><input id="search" class="search" placeholder="Search your pages"></div><div id="archiveList" class="archive-list"></div></section>
+      <section id="settingsView" class="view hidden"><div class="settings-panel"><p class="eyebrow">Make it yours</p><h3>Settings</h3><div class="settings-profile-row" style="display:flex;align-items:center;gap:18px;margin-bottom:8px"><label for="settingsPhotoInput" class="avatar-wrapper" style="width:58px;height:58px" title="Change profile photo"><img id="settingsAvatarPreview" class="user-avatar" style="width:58px;height:58px" src="" alt="Profile"><span id="settingsAvatarBadge" class="brand-badge-icon" style="width:58px;height:58px;font-size:1.8rem">✦</span><span class="avatar-camera-overlay" style="font-size:16px">📷</span><input id="settingsPhotoInput" type="file" accept="image/*" hidden></label><div><strong style="font-size:1rem;color:var(--ink);display:block">Profile Photo</strong><label for="settingsPhotoInput" class="auth-link" style="display:inline-block;cursor:pointer;margin-top:4px;font-size:13px;font-weight:600">Change photo</label></div></div><label>Your name<input id="settingsDisplayName" placeholder="Enter your name"></label><label>Diary title<input id="diaryTitle"></label><button id="saveSettings" class="primary">Save settings</button><hr><div><p class="eyebrow">Theme</p><div class="settings-themes"><button class="theme-choice" data-theme="day">☀ Day</button><button class="theme-choice" data-theme="night">☾ Night</button><button class="theme-choice" data-theme="cinematic">◒ Cinematic</button><button class="theme-choice" data-theme="pink">♡ Pink</button><button class="theme-choice" data-theme="classic">▤ Classic</button></div></div><hr><div style="display:flex;gap:10px;flex-wrap:wrap"><button id="export" class="secondary">Export JSON backup</button><button id="exportPdf" class="secondary">Export PDF backup</button><label class="secondary file-label">Import JSON backup<input id="import" type="file" accept="application/json" hidden></label></div></div></section>
+      <section id="faqView" class="view hidden">
+        <div class="faq-container">
+          <!-- Section 1: About My Diary & Writing -->
+          <div class="faq-card">
+            <div class="faq-card-head">
+              <p class="eyebrow">Everything you need to know</p>
+              <h3>About My Diary & Writing</h3>
+            </div>
+            <div class="faq-list">
+              <div class="faq-item">
+                <h4 class="faq-question">How does 16-line page writing work?</h4>
+                <p class="faq-answer">My Diary is crafted like a real physical notebook. Each page is limited to exactly 16 lines. When you reach the 16th line and press Enter or keep typing, your writing is saved automatically and a fresh new page opens smoothly.</p>
+              </div>
+              <div class="faq-item">
+                <h4 class="faq-question">How do I navigate between pages?</h4>
+                <p class="faq-answer">You can easily flip through past and future pages using the "← Previous" and "Next →" buttons at the bottom. Your notes are saved before each navigation so nothing is ever lost.</p>
+              </div>
+              <div class="faq-item">
+                <h4 class="faq-question">Can I add audio voice notes, stickers, and pictures?</h4>
+                <p class="faq-answer">Yes! Tap the "● Voice" button to record audio notes into your diary, click "▧ Stickers" for expressive journaling, or choose "＋ Add media" to attach photos and videos to your memory.</p>
+              </div>
+              <div class="faq-item">
+                <h4 class="faq-question">Is my writing automatically saved?</h4>
+                <p class="faq-answer">Yes, everything you write is saved in real-time as you type. A subtle "Saved" indicator at the top right of your page gives you peace of mind.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Privacy, Backups & Personalization -->
+          <div class="faq-card">
+            <div class="faq-card-head">
+              <p class="eyebrow">Security & Customization</p>
+              <h3>Privacy, Backups & Themes</h3>
+            </div>
+            <div class="faq-list">
+              <div class="faq-item">
+                <h4 class="faq-question">Is my diary private and secure?</h4>
+                <p class="faq-answer">Yes! Every thought, photo, voice recording, and memory is strictly private to your own account. No one else has access to your journal.</p>
+              </div>
+              <div class="faq-item">
+                <h4 class="faq-question">How can I download or backup my diary?</h4>
+                <p class="faq-answer">Open the Settings tab where you can download an offline JSON backup or export a beautifully stylized PDF backup of all your pages. You can also import any previous JSON backup file anytime.</p>
+              </div>
+              <div class="faq-item">
+                <h4 class="faq-question">Can I change the themes and fonts?</h4>
+                <p class="faq-answer">Yes! You can choose between Day, Night, Cinematic, Pink, and Classic themes in Settings, alongside your preferred handwriting or book-style font.</p>
+              </div>
+              <div class="faq-item">
+                <h4 class="faq-question">How do Categories work?</h4>
+                <p class="faq-answer">Categories allow you to organize your diary entries into distinct life chapters (like Travel, Ideas, Memories, Personal). You can assign custom symbols and colors to each category.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: The Developers -->
+          <div class="faq-card">
+            <div class="faq-card-head">
+              <p class="eyebrow">Crafted with passion</p>
+              <h3>The Developers</h3>
+            </div>
+            <div class="dev-grid">
+              <div class="dev-card">
+                <div class="dev-avatar-pill">🎨</div>
+                <span class="dev-role">UI / UX Design</span>
+                <h4 class="dev-name">Naveed Zafar</h4>
+              </div>
+              <div class="dev-card">
+                <div class="dev-avatar-pill">💻</div>
+                <span class="dev-role">Frontend Developer</span>
+                <h4 class="dev-name">Muhammad Tayyab</h4>
+              </div>
+              <div class="dev-card">
+                <div class="dev-avatar-pill">⚡</div>
+                <span class="dev-role">Full Stack Developer</span>
+                <h4 class="dev-name">Abdul Basit</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="categoryModal" class="modal hidden"><form id="categoryForm" class="modal-card"><button type="button" id="closeCategory" class="modal-close">×</button><p class="eyebrow">A new chapter</p><h3>Create category</h3><label>Name<input id="categoryName" required placeholder="e.g. Travel"></label><label>Icon<div id="iconChoices" class="icon-choices"><button type="button">✦</button><button type="button">♡</button><button type="button">☀</button><button type="button">☕</button><button type="button">✈</button><button type="button">🎨</button><button type="button">🌿</button><button type="button">📚</button></div></label><input id="categoryIcon" type="hidden" value="✦"><label>Color<div id="colorChoices" class="color-choices"><button type="button" data-color="#d87983" style="--swatch:#d87983"></button><button type="button" data-color="#6b9fd3" style="--swatch:#6b9fd3"></button><button type="button" data-color="#77b99b" style="--swatch:#77b99b"></button><button type="button" data-color="#d6a052" style="--swatch:#d6a052"></button><button type="button" data-color="#9b82c8" style="--swatch:#9b82c8"></button><button type="button" data-color="#5b9fa0" style="--swatch:#5b9fa0"></button><label class="custom-color"><input id="customCategoryColor" type="color" value="#d87983"> Custom</label></div></label><button class="primary" type="submit">Create category</button></form></div>
+  <div id="confirmModal" class="modal hidden">
+    <div class="confirm-modal-card">
+      <div class="confirm-icon-pill">🗑</div>
+      <h3 id="confirmTitle" class="confirm-modal-title">Delete page?</h3>
+      <p id="confirmMessage" class="confirm-modal-text">Are you sure you want to delete this page? This action cannot be undone.</p>
+      <div class="confirm-modal-actions">
+        <button type="button" id="confirmCancelBtn" class="confirm-btn confirm-btn-cancel">Cancel</button>
+        <button type="button" id="confirmOkBtn" class="confirm-btn confirm-btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+  <div id="pageReaderModal" class="modal hidden">
+    <div class="modal-card page-reader-card">
+      <div class="page-reader-head">
+        <div>
+          <p class="eyebrow" id="readerEyebrow">MY DIARY</p>
+          <h3 id="readerTitle" class="page-reader-title"></h3>
+          <div class="page-reader-sub">
+            <span id="readerDate"></span>
+            <span id="readerMood"></span>
+          </div>
+        </div>
+        <button type="button" id="closeReaderBtn" class="modal-close" title="Close reader">×</button>
+      </div>
+      <div id="readerContent" class="page-reader-body"></div>
+      <div class="page-reader-foot">
+        <button type="button" id="readerDeleteBtn" class="secondary reader-btn-delete" style="color:#b53e52;border:1px solid rgba(181,62,82,.3);border-radius:10px;padding:9px 16px;cursor:pointer">🗑 Delete</button>
+        <div style="margin-left:auto;display:flex;gap:10px">
+          <button type="button" id="readerCloseBtn" class="secondary" style="border-radius:10px;padding:9px 18px;cursor:pointer">Close</button>
+          <button type="button" id="readerEditBtn" class="primary reader-btn-edit">✏ Edit page</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/diary.js?v=30"></script>
+</body></html>
