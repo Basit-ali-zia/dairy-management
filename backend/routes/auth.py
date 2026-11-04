@@ -1,14 +1,43 @@
+import json
+import urllib.request
+import urllib.parse
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from ..auth import create_token, get_current_user, get_db, hash_value, verify_value
 from ..database import User
-from ..models import LoginRequest, RecoveryOut, ResetPassword, TokenOut, UserCreate, UserOut, UserSettings
+from ..models import (
+    LoginRequest,
+    RecoveryOut,
+    ResetPassword,
+    TokenOut,
+    UserCreate,
+    UserOut,
+    UserSettings,
+    GoogleAuthRequest,
+)
 from ..rate_limiter import limiter
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 def output(user: User) -> UserOut:
     return UserOut.model_validate(user)
+
+def verify_google_token(credential: str) -> dict:
+    url = f"https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(credential)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "MyDiaryApp/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode("utf-8"))
+                if str(data.get("email_verified", "")).lower() == "true":
+                    return data
+                raise HTTPException(400, "Google email is not verified")
+            raise HTTPException(401, "Invalid Google token")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(401, f"Google token verification failed: {str(e)}")
 
 @router.post("/register", response_model=TokenOut, status_code=201)
 @limiter.limit("5/minute")
@@ -31,6 +60,55 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data.username.strip()).first()
     if not user or not verify_value(data.password, user.password_hash):
         raise HTTPException(401, "Invalid username or password")
+    return TokenOut(access_token=create_token(user.id), user=output(user))
+
+@router.post("/google", response_model=TokenOut)
+@limiter.limit("15/minute")
+def google_auth(request: Request, data: GoogleAuthRequest, db: Session = Depends(get_db)):
+    info = verify_google_token(data.credential)
+    email = info.get("email", "").strip().lower()
+    google_id = str(info.get("sub", ""))
+    name = info.get("name") or email.split("@")[0]
+    picture = info.get("picture")
+
+    if not email:
+        raise HTTPException(400, "Google token does not contain an email address")
+
+    # Find existing user by google_id or email
+    user = db.query(User).filter((User.google_id == google_id) | (User.email == email)).first()
+
+    if not user:
+        base_username = email.split("@")[0].replace(".", "_")
+        username = base_username
+        counter = 1
+        while db.query(User).filter(User.username == username).first():
+            username = f"{base_username}_{counter}"
+            counter += 1
+
+        random_secret = secrets.token_urlsafe(32)
+        user = User(
+            username=username,
+            email=email,
+            display_name=name,
+            avatar_url=picture,
+            google_id=google_id,
+            password_hash=hash_value(random_secret),
+            recovery_question="Google Account",
+            recovery_answer_hash=hash_value(random_secret),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        if not user.google_id:
+            user.google_id = google_id
+        if not user.avatar_url and picture:
+            user.avatar_url = picture
+        if not user.display_name and name:
+            user.display_name = name
+        db.commit()
+        db.refresh(user)
+
     return TokenOut(access_token=create_token(user.id), user=output(user))
 
 @router.post("/logout")

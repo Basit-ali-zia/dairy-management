@@ -471,3 +471,38 @@ def test_search_fts():
     assert data["page_size"] == 1
     assert len(data["items"]) == 1
 
+def test_google_auth(monkeypatch):
+    import backend.routes.auth as auth_mod
+    # Mock verify_google_token
+    from fastapi import HTTPException
+    def mock_verify(credential):
+        if credential == "valid_token":
+            return {
+                "sub": "google_123456",
+                "email": "user@gmail.com",
+                "email_verified": "true",
+                "name": "Basit Ali",
+                "picture": "https://example.com/avatar.jpg"
+            }
+        raise HTTPException(401, "Invalid token")
+
+    monkeypatch.setattr(auth_mod, "verify_google_token", mock_verify)
+
+    # Valid token creates user
+    res = client.post("/api/auth/google", json={"credential": "valid_token"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "access_token" in data
+    assert data["user"]["email"] == "user@gmail.com"
+    assert data["user"]["display_name"] == "Basit Ali"
+    assert data["user"]["google_id"] == "google_123456"
+
+    # Existing user login
+    res2 = client.post("/api/auth/google", json={"credential": "valid_token"})
+    assert res2.status_code == 200
+    assert res2.json()["user"]["email"] == "user@gmail.com"
+
+    # Invalid token fails
+    res_err = client.post("/api/auth/google", json={"credential": "invalid"})
+    assert res_err.status_code == 401
+

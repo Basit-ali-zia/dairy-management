@@ -12,3 +12,4 @@ reportlab
 pytest
 httpx2
 python-json-logger
+psycopg2-binary

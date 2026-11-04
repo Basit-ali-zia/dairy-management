@@ -168,9 +168,98 @@ async function uploadUserAvatar(file) {
   }
 }
 
+window.handleGoogleCredentialResponse = async (response) => {
+  if (!response || !response.credential) return;
+  try {
+    const errorEl = $('#authError');
+    if (errorEl) errorEl.textContent = '';
+    const result = await api('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential: response.credential })
+    });
+    token = result.access_token;
+    localStorage.setItem('diary_token', token);
+    user = result.user;
+    toast(`Welcome, ${user.display_name || user.username}!`);
+    const needsOnboarding = !user.gender || !user.age_range;
+    if (!needsOnboarding) {
+      $('#auth').classList.add('hidden');
+      boot(false, true);
+    } else {
+      $('#auth').classList.add('hidden');
+      showOnboarding('gender');
+    }
+  } catch (error) {
+    const errorEl = $('#authError');
+    if (errorEl) errorEl.textContent = error.message || 'Google Sign-In failed';
+    toast(error.message || 'Google Sign-In failed');
+  }
+};
+
+function renderGoogleBtn() {
+  const container = document.getElementById('googleSignInBtn');
+  const fallback = document.getElementById('googleFallbackBtn');
+  const clientId = window.GOOGLE_CLIENT_ID || localStorage.getItem('google_client_id') || '';
+
+  if (window.google && window.google.accounts && clientId) {
+    try {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: window.handleGoogleCredentialResponse
+      });
+      if (container) {
+        container.innerHTML = '';
+        google.accounts.id.renderButton(container, {
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'pill',
+          width: 280
+        });
+        if (fallback) fallback.style.display = 'none';
+        return;
+      }
+    } catch (e) {
+      console.warn('Google Identity error', e);
+    }
+  }
+
+  if (fallback) {
+    fallback.style.display = 'flex';
+    fallback.onclick = () => {
+      const inputId = prompt(
+        "Google Sign-In ke liye Google Client ID zaroori hai.\nAap Google Cloud Console se free Client ID bana kar yahan enter kar sakte hain:\n(e.g. 123456789-xxxx.apps.googleusercontent.com)",
+        localStorage.getItem('google_client_id') || ''
+      );
+      if (inputId && inputId.trim()) {
+        localStorage.setItem('google_client_id', inputId.trim());
+        window.GOOGLE_CLIENT_ID = inputId.trim();
+        toast('Google Client ID saved!');
+        renderGoogleBtn();
+      }
+    };
+  }
+}
+
+const GOOGLE_BTN_HTML = `
+  <div id="googleSection" style="display:flex;flex-direction:column;align-items:center;margin-bottom:12px;gap:6px">
+    <div id="googleSignInBtn"></div>
+    <div id="googleFallbackBtn" style="display:none;width:100%;max-width:280px;height:42px;border:1.5px solid var(--line,#dadce0);border-radius:24px;background:var(--paper,#fff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font:600 14px Arial,sans-serif;color:var(--ink,#3c4043);box-shadow:0 2px 8px rgba(0,0,0,.04);transition:all .2s ease">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+      <span>Continue with Google</span>
+    </div>
+    <div style="display:flex;align-items:center;width:100%;margin:2px 0">
+      <span style="flex:1;height:1px;background:var(--line,#e0d8d0)"></span>
+      <span style="padding:0 10px;font:12px Arial;color:var(--muted,#8c7c72)">or</span>
+      <span style="flex:1;height:1px;background:var(--line,#e0d8d0)"></span>
+    </div>
+  </div>
+`;
+
 function authForm(mode = 'login') {
   if (mode === 'login') {
     $('#authForm').innerHTML = `
+      ${GOOGLE_BTN_HTML}
       <input name="username" placeholder="Username" required autocomplete="username">
       <input name="password" type="password" placeholder="Password" required autocomplete="current-password">
       <div style="display:flex;justify-content:flex-end;margin-top:-6px;margin-bottom:2px">
@@ -180,6 +269,8 @@ function authForm(mode = 'login') {
       <button class="primary" type="submit">Sign in</button>
       <button type="button" class="secondary" id="toRegisterBtn">Create account</button>
     `;
+    renderGoogleBtn();
+    setTimeout(renderGoogleBtn, 300);
     $('#forgotLink').onclick = () => authForm('forgot');
     $('#toRegisterBtn').onclick = () => authForm('register');
     $('#authForm').onsubmit = async (event) => {
@@ -210,6 +301,7 @@ function authForm(mode = 'login') {
 
   if (mode === 'register') {
     $('#authForm').innerHTML = `
+      ${GOOGLE_BTN_HTML}
       <input name="email" type="email" placeholder="Email" required autocomplete="email">
       <input name="username" placeholder="Username" required autocomplete="username">
       <input name="password" type="password" placeholder="Password (8+ characters)" required autocomplete="new-password">
@@ -219,6 +311,8 @@ function authForm(mode = 'login') {
       <button class="primary" type="submit">Create account</button>
       <button type="button" class="secondary" id="toLoginBtn">Already have an account? Sign in</button>
     `;
+    renderGoogleBtn();
+    setTimeout(renderGoogleBtn, 300);
     $('#toLoginBtn').onclick = () => authForm('login');
     $('#authForm').onsubmit = async (event) => {
       event.preventDefault();

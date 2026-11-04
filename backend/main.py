@@ -28,11 +28,27 @@ with engine.begin() as connection:
 	if "age_range" not in user_columns: connection.execute(text("ALTER TABLE users ADD COLUMN age_range VARCHAR(16)"))
 	if "avatar_url" not in user_columns: connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255)"))
 	if "display_name" not in user_columns: connection.execute(text("ALTER TABLE users ADD COLUMN display_name VARCHAR(100)"))
+	if "google_id" not in user_columns: connection.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(100)"))
 
 app = FastAPI(title="My Diary API", version="3.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+allowed_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env else [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.netlify\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):

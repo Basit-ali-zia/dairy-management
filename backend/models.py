@@ -13,6 +13,9 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class GoogleAuthRequest(BaseModel):
+    credential: str
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -23,6 +26,7 @@ class UserOut(BaseModel):
     age_range: Optional[str] = None
     avatar_url: Optional[str] = None
     display_name: Optional[str] = None
+    google_id: Optional[str] = None
 
 class TokenOut(BaseModel):
     access_token: str

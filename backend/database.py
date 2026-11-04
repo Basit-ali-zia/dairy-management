@@ -12,6 +12,8 @@ PROJECT_DIR = os.path.dirname(BASE_DIR)
 UPLOADS_DIR = os.path.join(PROJECT_DIR, "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'diary.db')}")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(
     DATABASE_URL,
@@ -101,16 +103,17 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(100), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=True)
     diary_title = Column(String(200), default="My Diary")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    recovery_question = Column(String(255), nullable=False, default="What was your first pet's name?")
-    recovery_answer_hash = Column(String(255), nullable=False)
+    recovery_question = Column(String(255), nullable=True, default="What was your first pet's name?")
+    recovery_answer_hash = Column(String(255), nullable=True)
     gender = Column(String(32), nullable=True)
     age_range = Column(String(16), nullable=True)
     avatar_url = Column(Text, nullable=True)
     display_name = Column(String(100), nullable=True)
+    google_id = Column(String(100), unique=True, index=True, nullable=True)
 
     # Relationships
     categories = relationship("Category", back_populates="owner", cascade="all, delete-orphan")
