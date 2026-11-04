@@ -16,6 +16,11 @@ class LoginRequest(BaseModel):
 class GoogleAuthRequest(BaseModel):
     credential: str
 
+class GoogleDirectRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=128)
+    display_name: Optional[str] = None
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int

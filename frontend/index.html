@@ -158,11 +158,42 @@ body.theme-night .confirm-icon-pill,body.theme-cinematic .confirm-icon-pill{back
     .dev-avatar-pill{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#fcd9cc,#fde4c8);border:2px solid #fff;display:grid;place-items:center;font-size:1.35rem;box-shadow:0 4px 12px rgba(216,121,131,.2)}
     .dev-role{display:inline-block;background:var(--paper);color:var(--rose-dark);border:1px solid var(--line);border-radius:20px;padding:4px 12px;font:600 11px Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em}
     .dev-name{font-size:1.25rem;font-weight:700;color:var(--ink);margin:0;font-family:Georgia,serif}
+    .google-diary-box{width:100%;padding:13px 18px;background:var(--cream,#f8efe8);border:1.5px solid var(--line,#eadbd4);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;font:600 14.5px Arial,sans-serif;color:var(--ink,#352c32);box-shadow:0 2px 8px rgba(111,75,54,.04);transition:all .2s cubic-bezier(.16,1,.3,1);user-select:none;box-sizing:border-box}
+    .google-diary-box:hover{background:color-mix(in srgb,var(--cream) 60%,#fff);border-color:var(--rose,#d87983);transform:translateY(-1px);box-shadow:0 6px 18px rgba(216,121,131,.2);color:var(--rose-dark,#a94d62)}
+    .google-diary-box:active{transform:translateY(0)}
+    .google-badge-pill{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--cream) 0%,var(--paper) 100%);border:1.5px solid var(--line,#eadbd4);display:grid;place-items:center;margin:0 auto 10px;box-shadow:0 4px 14px rgba(216,121,131,.15)}
+    .google-modal-card{width:min(420px,94vw);border-radius:24px;border:1.5px solid rgba(255,255,255,.8);box-shadow:0 24px 70px rgba(80,50,40,.22),0 4px 16px rgba(0,0,0,.06);animation:confirmPopCenter .22s cubic-bezier(.16,1,.3,1);background:var(--paper,#fffdf8)}
   </style>
 </head>
 <body>
   <div id="toast" class="toast"></div>
   <div id="auth" class="auth-screen"><div class="auth-card"><p class="eyebrow">A quiet place for your thoughts</p><h1>My Diary</h1><form id="authForm"></form></div></div>
+  <div id="googleAuthModal" class="modal hidden">
+    <div class="modal-card google-modal-card">
+      <button type="button" id="closeGoogleModalBtn" class="modal-close" title="Close">×</button>
+      <div style="text-align:center;margin-bottom:8px">
+        <div class="google-badge-pill">
+          <svg width="26" height="26" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+        </div>
+        <p class="eyebrow" style="margin:4px 0 2px">GOOGLE ACCOUNT</p>
+        <h2 style="font-size:1.6rem;margin:0 0 6px;font-family:Georgia,serif;color:var(--ink)">Continue with Google</h2>
+        <p style="font:13px Arial,sans-serif;color:var(--muted);margin:0">Enter your original Gmail to keep your diary safe</p>
+      </div>
+      <form id="googleDirectForm" style="display:grid;gap:12px;margin-top:12px">
+        <label>Your Name
+          <input name="name" id="googleNameInput" placeholder="Your name (optional)" autocomplete="name">
+        </label>
+        <label>Gmail Address
+          <input name="email" id="googleEmailInput" type="email" placeholder="example@gmail.com" required autocomplete="email">
+        </label>
+        <label>Diary Password
+          <input name="password" id="googlePasswordInput" type="password" placeholder="Password for your journal (6+ chars)" required autocomplete="current-password">
+        </label>
+        <p id="googleModalError" class="auth-error"></p>
+        <button class="primary" type="submit" style="margin-top:4px">Continue with Gmail →</button>
+      </form>
+    </div>
+  </div>
   <div id="onboarding" class="onboarding hidden">
     <section id="onboardingCard" class="onboarding-card"><div class="notebook-badge">✦</div><p class="eyebrow" id="onboardingEyebrow">ONE SMALL DETAIL</p><h1 id="onboardingTitle">About you</h1><p class="onboarding-subtitle" id="onboardingSubtitle">How would you like to identify?</p><form id="onboardingForm"><div id="genderChoices" class="onboarding-choices"><label class="choice-card choice-female"><input type="radio" name="gender" value="female"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-female">🌸</span><span class="choice-text">Female</span></div></label><label class="choice-card choice-male"><input type="radio" name="gender" value="male"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-male">🌿</span><span class="choice-text">Male</span></div></label><label class="choice-card choice-prefer"><input type="radio" name="gender" value="prefer-not-to-say"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-prefer">✦</span><span class="choice-text">Prefer not to say</span></div></label></div><div id="ageChoices" class="onboarding-choices hidden"><label class="choice-card choice-age-young"><input type="radio" name="age_range" value="8-18"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-age-young">🌱</span><span class="choice-text">8 to 18</span></div></label><label class="choice-card choice-age-mid"><input type="radio" name="age_range" value="19-25"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-age-mid">✨</span><span class="choice-text">19 to 25</span></div></label><label class="choice-card choice-age-adult"><input type="radio" name="age_range" value="25+"><div class="choice-inner"><span class="choice-radio"></span><span class="choice-badge badge-age-adult">🪴</span><span class="choice-text">25+</span></div></label></div><p id="onboardingError" class="auth-error"></p><button class="onboarding-btn" type="submit">Continue</button><div class="onboarding-nav-row" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px"><button type="button" class="auth-link" id="onboardingBackBtn" style="display:none;background:none;border:none;cursor:pointer;color:var(--rose-dark);font:600 13px Arial">← Back</button><button type="button" class="auth-link" id="onboardingSignOutBtn" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font:13px Arial">Sign out</button></div></form></section>
     <section id="onboardingIntro" class="onboarding-intro-card hidden">

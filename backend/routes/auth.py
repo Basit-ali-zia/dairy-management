@@ -15,6 +15,7 @@ from ..models import (
     UserOut,
     UserSettings,
     GoogleAuthRequest,
+    GoogleDirectRequest,
 )
 from ..rate_limiter import limiter
 
@@ -57,9 +58,46 @@ def register(request: Request, data: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenOut)
 @limiter.limit("10/minute")
 def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == data.username.strip()).first()
+    identifier = data.username.strip()
+    user = db.query(User).filter((User.username == identifier) | (User.email == identifier.lower())).first()
     if not user or not verify_value(data.password, user.password_hash):
-        raise HTTPException(401, "Invalid username or password")
+        raise HTTPException(401, "Invalid username/email or password")
+    return TokenOut(access_token=create_token(user.id), user=output(user))
+
+@router.post("/google-direct", response_model=TokenOut)
+@limiter.limit("15/minute")
+def google_direct(request: Request, data: GoogleDirectRequest, db: Session = Depends(get_db)):
+    email = data.email.strip().lower()
+    user = db.query(User).filter(User.email == email).first()
+
+    if user:
+        if user.password_hash and not verify_value(data.password, user.password_hash):
+            raise HTTPException(401, "Incorrect password for this Gmail account")
+        if not user.password_hash:
+            user.password_hash = hash_value(data.password)
+            db.commit()
+            db.refresh(user)
+    else:
+        base_username = email.split("@")[0].replace(".", "_")
+        username = base_username
+        counter = 1
+        while db.query(User).filter(User.username == username).first():
+            username = f"{base_username}_{counter}"
+            counter += 1
+
+        name = data.display_name.strip() if data.display_name else email.split("@")[0].capitalize()
+        user = User(
+            username=username,
+            email=email,
+            display_name=name,
+            password_hash=hash_value(data.password),
+            recovery_question="Original Gmail",
+            recovery_answer_hash=hash_value(data.password)
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
     return TokenOut(access_token=create_token(user.id), user=output(user))
 
 @router.post("/google", response_model=TokenOut)

@@ -196,62 +196,113 @@ window.handleGoogleCredentialResponse = async (response) => {
   }
 };
 
-function renderGoogleBtn() {
-  const container = document.getElementById('googleSignInBtn');
-  const fallback = document.getElementById('googleFallbackBtn');
-  const clientId = window.GOOGLE_CLIENT_ID || localStorage.getItem('google_client_id') || '';
-
-  if (window.google && window.google.accounts && clientId) {
-    try {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: window.handleGoogleCredentialResponse
-      });
-      if (container) {
-        container.innerHTML = '';
-        google.accounts.id.renderButton(container, {
-          theme: 'outline',
-          size: 'large',
-          text: 'continue_with',
-          shape: 'pill',
-          width: 280
-        });
-        if (fallback) fallback.style.display = 'none';
-        return;
-      }
-    } catch (e) {
-      console.warn('Google Identity error', e);
-    }
+function initGoogleDirectModal() {
+  const googleModal = $('#googleAuthModal');
+  const closeBtn = $('#closeGoogleModalBtn');
+  if (closeBtn && googleModal) {
+    closeBtn.onclick = () => googleModal.classList.add('hidden');
+    googleModal.onclick = (e) => {
+      if (e.target === googleModal) googleModal.classList.add('hidden');
+    };
   }
 
-  if (fallback) {
-    fallback.style.display = 'flex';
-    fallback.onclick = () => {
-      const inputId = prompt(
-        "Google Sign-In ke liye Google Client ID zaroori hai.\nAap Google Cloud Console se free Client ID bana kar yahan enter kar sakte hain:\n(e.g. 123456789-xxxx.apps.googleusercontent.com)",
-        localStorage.getItem('google_client_id') || ''
-      );
-      if (inputId && inputId.trim()) {
-        localStorage.setItem('google_client_id', inputId.trim());
-        window.GOOGLE_CLIENT_ID = inputId.trim();
-        toast('Google Client ID saved!');
-        renderGoogleBtn();
+  const form = $('#googleDirectForm');
+  if (form && !form.dataset.bound) {
+    form.dataset.bound = 'true';
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const errEl = $('#googleModalError');
+      if (errEl) errEl.textContent = '';
+      const email = $('#googleEmailInput').value.trim();
+      const password = $('#googlePasswordInput').value;
+      const name = ($('#googleNameInput')?.value || '').trim();
+
+      if (!email.includes('@')) {
+        if (errEl) errEl.textContent = 'Please enter a valid Gmail address';
+        return;
+      }
+
+      try {
+        const result = await api('/auth/google-direct', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, display_name: name || undefined })
+        });
+        token = result.access_token;
+        localStorage.setItem('diary_token', token);
+        user = result.user;
+        if (googleModal) googleModal.classList.add('hidden');
+        $('#auth').classList.add('hidden');
+        toast(`Welcome, ${user.display_name || user.username}!`);
+        const needsOnboarding = !user.gender || !user.age_range;
+        if (!needsOnboarding) {
+          boot(false, true);
+        } else {
+          showOnboarding('gender');
+        }
+      } catch (err) {
+        if (errEl) errEl.textContent = err.message || 'Google account sign-in failed';
       }
     };
   }
 }
 
+function renderGoogleBtn() {
+  initGoogleDirectModal();
+  const btn = $('#googleDiaryBtn');
+  const googleModal = $('#googleAuthModal');
+  const clientId = window.GOOGLE_CLIENT_ID || localStorage.getItem('google_client_id') || '';
+
+  if (btn) {
+    btn.onclick = () => {
+      if (window.google && window.google.accounts && clientId) {
+        try {
+          google.accounts.id.prompt();
+          return;
+        } catch (e) {
+          console.warn('Google prompt fallback', e);
+        }
+      }
+      if (googleModal) {
+        $('#googleModalError').textContent = '';
+        googleModal.classList.remove('hidden');
+        $('#googleEmailInput')?.focus();
+      }
+    };
+  }
+
+  const container = document.getElementById('googleOfficialBtn');
+  if (window.google && window.google.accounts && clientId && container) {
+    try {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: window.handleGoogleCredentialResponse
+      });
+      container.innerHTML = '';
+      container.style.display = 'flex';
+      google.accounts.id.renderButton(container, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        width: 320
+      });
+    } catch (e) {
+      console.warn('Google Identity error', e);
+    }
+  }
+}
+
 const GOOGLE_BTN_HTML = `
-  <div id="googleSection" style="display:flex;flex-direction:column;align-items:center;margin-bottom:12px;gap:6px">
-    <div id="googleSignInBtn"></div>
-    <div id="googleFallbackBtn" style="display:none;width:100%;max-width:280px;height:42px;border:1.5px solid var(--line,#dadce0);border-radius:24px;background:var(--paper,#fff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font:600 14px Arial,sans-serif;color:var(--ink,#3c4043);box-shadow:0 2px 8px rgba(0,0,0,.04);transition:all .2s ease">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+  <div style="margin-bottom:16px">
+    <button type="button" id="googleDiaryBtn" class="google-diary-box">
+      <svg width="20" height="20" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
       <span>Continue with Google</span>
-    </div>
-    <div style="display:flex;align-items:center;width:100%;margin:2px 0">
-      <span style="flex:1;height:1px;background:var(--line,#e0d8d0)"></span>
-      <span style="padding:0 10px;font:12px Arial;color:var(--muted,#8c7c72)">or</span>
-      <span style="flex:1;height:1px;background:var(--line,#e0d8d0)"></span>
+    </button>
+    <div id="googleOfficialBtn" style="display:none;justify-content:center;margin-top:6px"></div>
+    <div style="display:flex;align-items:center;margin-top:14px;margin-bottom:2px">
+      <span style="flex:1;height:1px;background:var(--line,#eadbd4)"></span>
+      <span style="padding:0 12px;font:600 11px Arial,sans-serif;color:var(--muted,#887980);text-transform:uppercase;letter-spacing:.06em">or with account</span>
+      <span style="flex:1;height:1px;background:var(--line,#eadbd4)"></span>
     </div>
   </div>
 `;
@@ -260,7 +311,7 @@ function authForm(mode = 'login') {
   if (mode === 'login') {
     $('#authForm').innerHTML = `
       ${GOOGLE_BTN_HTML}
-      <input name="username" placeholder="Username" required autocomplete="username">
+      <input name="username" placeholder="Username or Gmail address" required autocomplete="username">
       <input name="password" type="password" placeholder="Password" required autocomplete="current-password">
       <div style="display:flex;justify-content:flex-end;margin-top:-6px;margin-bottom:2px">
         <button type="button" id="forgotLink" class="auth-link">Forgot password?</button>
@@ -293,7 +344,7 @@ function authForm(mode = 'login') {
           showOnboarding('gender');
         }
       } catch (error) {
-        $('#authError').textContent = 'Invalid username or password';
+        $('#authError').textContent = 'Invalid username/email or password';
       }
     };
     return;
@@ -302,7 +353,7 @@ function authForm(mode = 'login') {
   if (mode === 'register') {
     $('#authForm').innerHTML = `
       ${GOOGLE_BTN_HTML}
-      <input name="email" type="email" placeholder="Email" required autocomplete="email">
+      <input name="email" type="email" placeholder="Gmail or Email address" required autocomplete="email">
       <input name="username" placeholder="Username" required autocomplete="username">
       <input name="password" type="password" placeholder="Password (8+ characters)" required autocomplete="new-password">
       <input name="question" placeholder="Recovery question (e.g. Pet's name?)" required>
