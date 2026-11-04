@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/backup", tags=["backup"])
 @router.get("/export")
 def export_data(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     categories = db.query(Category).filter(Category.user_id == user.id).all()
-    entries = db.query(Entry).options(selectinload(Entry.blocks)).filter(Entry.user_id == user.id).order_by(Entry.entry_date).all()
+    entries = db.query(Entry).options(selectinload(Entry.blocks)).filter(Entry.user_id == user.id, Entry.deleted_at.is_(None)).order_by(Entry.entry_date).all()
     return {
         "version": 1,
         "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -70,7 +70,7 @@ async def import_data(file: UploadFile = File(...), user: User = Depends(get_cur
 
 @router.get("/pdf")
 def export_pdf(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    entries = db.query(Entry).filter(Entry.user_id == user.id).order_by(Entry.entry_date).all()
+    entries = db.query(Entry).filter(Entry.user_id == user.id, Entry.deleted_at.is_(None)).order_by(Entry.entry_date).all()
     upload_dir = Path("uploads")
     upload_dir.mkdir(parents=True, exist_ok=True)
     path = upload_dir / f"diary_{user.id}.pdf"

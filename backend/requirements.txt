@@ -11,3 +11,4 @@ slowapi
 reportlab
 pytest
 httpx2
+python-json-logger

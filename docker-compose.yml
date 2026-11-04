@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: my-diary-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://diary:diary@db:5432/diary
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - RATE_LIMIT_ENABLED=true
+      - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+    volumes:
+      - ./uploads:/app/uploads
+      - ./backend/diary.db:/app/backend/diary.db
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:16-alpine
+    container_name: my-diary-db
+    environment:
+      - POSTGRES_USER=diary
+      - POSTGRES_PASSWORD=diary
+      - POSTGRES_DB=diary
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diary -d diary"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -4,3 +4,19 @@ __pycache__/
 venv/
 backend/diary.db
 uploads/
+
+# Environment variables
+.env
+.env*.local
+
+# Logs
+logs/
+*.log
+
+# Python / Pytest caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# CI / Workflows (requires GitHub token workflow scope)
+.github/

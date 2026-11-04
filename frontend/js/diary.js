@@ -316,20 +316,39 @@ function authForm(mode = 'login') {
 }
 
 const INTRO_THEMES = {
-  '8-18': {
-    art: '/assets/intro/intro_8_18.png',
-    avatar: '/assets/intro/avatar_8_18.png',
-    theme: 'theme-intro-young'
+  female: {
+    '8-18': {
+      art: '/assets/intro/intro_8_18.png',
+      avatar: '/assets/intro/avatar_8_18.png',
+      theme: 'theme-intro-young'
+    },
+    '19-25': {
+      art: '/assets/intro/intro_19_25.png',
+      avatar: '/assets/intro/avatar_19_25.png',
+      theme: 'theme-intro-mid'
+    },
+    '25+': {
+      art: '/assets/intro/intro_25_plus.jpg',
+      avatar: '/assets/intro/avatar_25_plus.jpg',
+      theme: 'theme-intro-adult'
+    }
   },
-  '19-25': {
-    art: '/assets/intro/intro_19_25.png',
-    avatar: '/assets/intro/avatar_19_25.png',
-    theme: 'theme-intro-mid'
-  },
-  '25+': {
-    art: '/assets/intro/intro_25_plus.jpg',
-    avatar: '/assets/intro/avatar_25_plus.jpg',
-    theme: 'theme-intro-adult'
+  male: {
+    '8-18': {
+      art: '/assets/intro/intro_male_8_18.jpg',
+      avatar: '/assets/intro/avatar_male_8_18.png',
+      theme: 'theme-intro-young'
+    },
+    '19-25': {
+      art: '/assets/intro/intro_male_19_25.jpg',
+      avatar: '/assets/intro/avatar_male_19_25.png',
+      theme: 'theme-intro-mid'
+    },
+    '25+': {
+      art: '/assets/intro/intro_male_25_plus.jpg',
+      avatar: '/assets/intro/avatar_male_25_plus.jpg',
+      theme: 'theme-intro-adult'
+    }
   }
 };
 
@@ -359,7 +378,10 @@ function renderIntroStep() {
     };
   }
 
-  const config = INTRO_THEMES[user.age_range] || INTRO_THEMES['8-18'];
+  const genderKey = user?.gender === 'male' ? 'male' : 'female';
+  const ageKey = user?.age_range || '19-25';
+  const genderThemes = INTRO_THEMES[genderKey] || INTRO_THEMES.female;
+  const config = genderThemes[ageKey] || genderThemes['19-25'];
 
   introCard.classList.remove('theme-intro-young', 'theme-intro-mid', 'theme-intro-adult');
   introCard.classList.add(config.theme);
@@ -381,7 +403,7 @@ function renderIntroStep() {
   }
 
   if (avatarImg) {
-    if (user.avatar_url) {
+    if (user.avatar_url && !user.avatar_url.includes('/assets/intro/')) {
       avatarImg.src = getAvatarUrl(user.avatar_url);
       avatarImg.classList.remove('hidden');
     } else {
@@ -438,6 +460,9 @@ function renderIntroStep() {
             avatarUrl = customAvatarDataUrl;
           }
         }
+      }
+      if ((!avatarUrl || avatarUrl.includes('/assets/intro/')) && config?.avatar) {
+        avatarUrl = config.avatar;
       }
       const settingsPayload = {
         display_name: name,
@@ -1436,9 +1461,12 @@ if ($('#newEntry')) $('#newEntry').onclick = async () => {
 $('#search').oninput = loadArchive;
 const themes = ['day', 'night', 'cinematic', 'pink', 'classic'];
 const applyTheme = (theme) => {
+  theme = theme || 'day';
   document.body.classList.remove(...themes.map((name) => `theme-${name}`));
   if (theme !== 'day') {
     document.body.classList.add(`theme-${theme}`);
+    document.body.style.removeProperty('background');
+    document.body.style.removeProperty('--body-bg');
   } else {
     // Day theme — set default background explicitly
     document.body.style.background = 'radial-gradient(circle at 15% 0,#fff8f1 0,transparent 32%),linear-gradient(135deg,#f7eee8,#f5e1e4)';
@@ -1452,7 +1480,7 @@ $('.settings-panel').insertAdjacentHTML('beforeend', `<hr><div><p class="eyebrow
 const applyFont = (font) => { document.documentElement.style.setProperty('--entry-font', `'${font}', Georgia, serif`); document.documentElement.style.setProperty('--heading-font', `'${font}', Georgia, serif`); localStorage.setItem('diary_font', font); $$('.font-choice').forEach((button) => button.classList.toggle('selected', button.dataset.font === font)); };
 $$('.font-choice').forEach((button) => button.onclick = () => { applyFont(button.dataset.font); toast(`${button.dataset.font} font applied`); });
 applyFont(localStorage.getItem('diary_font') || 'Lora');
-$('#logout').onclick = () => { token = null; localStorage.removeItem('diary_token'); location.reload(); };
+$('#logout').onclick = () => { token = null; user = null; localStorage.removeItem('diary_token'); localStorage.setItem('diary_theme', 'day'); applyTheme('day'); location.reload(); };
 $('#addCategory').onclick = () => { $('#categoryModal').classList.remove('hidden'); $('#categoryName').focus(); };
 $('#closeCategory').onclick = () => $('#categoryModal').classList.add('hidden');
 $$('#iconChoices button').forEach((button) => button.onclick = () => { $('#categoryIcon').value = button.textContent; $$('#iconChoices button').forEach((item) => item.classList.remove('selected')); button.classList.add('selected'); });

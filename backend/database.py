@@ -3,7 +3,7 @@ Database configuration and SQLAlchemy setup.
 Uses SQLite for development, designed to be PostgreSQL-compatible.
 """
 import os
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, ForeignKey, Index, JSON, event
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, ForeignKey, Index, JSON, event, text
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 
@@ -30,6 +30,64 @@ if DATABASE_URL.startswith("sqlite"):
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 Base = declarative_base()
+
+
+def init_fts(engine):
+    """Initialize FTS5 virtual table for full-text search on entries (SQLite only)."""
+    if not str(engine.url).startswith("sqlite"):
+        return
+    with engine.connect() as conn:
+        # Create FTS5 table for entries (title, tags, blocks content)
+        conn.execute(text("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+                entry_id UNINDEXED,
+                user_id UNINDEXED,
+                title,
+                tags,
+                content,
+                tokenize='porter unicode61'
+            )
+        """))
+        # Triggers to keep FTS in sync - simplified to avoid JSON extraction issues
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS entries_fts_ai AFTER INSERT ON entries BEGIN
+                INSERT INTO entries_fts (entry_id, user_id, title, tags, content)
+                SELECT new.id, new.user_id, new.title,
+                       new.tags,
+                       COALESCE((SELECT group_concat(b.content, ' ') FROM blocks b WHERE b.entry_id = new.id), '')
+                ;
+            END
+        """))
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS entries_fts_ad AFTER DELETE ON entries BEGIN
+                DELETE FROM entries_fts WHERE entry_id = old.id;
+            END
+        """))
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS entries_fts_au AFTER UPDATE ON entries BEGIN
+                DELETE FROM entries_fts WHERE entry_id = old.id;
+                INSERT INTO entries_fts (entry_id, user_id, title, tags, content)
+                SELECT new.id, new.user_id, new.title,
+                       new.tags,
+                       COALESCE((SELECT group_concat(b.content, ' ') FROM blocks b WHERE b.entry_id = new.id), '')
+                ;
+            END
+        """))
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS blocks_fts_ai AFTER INSERT ON blocks BEGIN
+                UPDATE entries_fts SET content = (
+                    SELECT COALESCE(group_concat(b2.content, ' '), '') FROM blocks b2 WHERE b2.entry_id = new.entry_id
+                ) WHERE entry_id = new.entry_id;
+            END
+        """))
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS blocks_fts_ad AFTER DELETE ON blocks BEGIN
+                UPDATE entries_fts SET content = (
+                    SELECT COALESCE(group_concat(b2.content, ' '), '') FROM blocks b2 WHERE b2.entry_id = old.entry_id
+                ) WHERE entry_id = old.entry_id;
+            END
+        """))
+        conn.commit()
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -84,6 +142,7 @@ class Entry(Base):
     tags = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     owner = relationship("User", back_populates="entries")
     category = relationship("Category", back_populates="entries")
@@ -107,5 +166,6 @@ class Block(Base):
 # Indexes for performance
 # ──────────────────────────────────────────────────────────────────────
 Index("ix_entries_user_date", Entry.user_id, Entry.entry_date)
+Index("ix_entries_user_deleted", Entry.user_id, Entry.deleted_at)
 Index("ix_blocks_entry_id", Block.entry_id)
 Index("ix_blocks_entry_position", Block.entry_id, Block.position)

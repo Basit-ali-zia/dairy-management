@@ -1,7 +1,12 @@
 import io
 import json
+import os
 from uuid import uuid4
 from fastapi.testclient import TestClient
+
+# Disable rate limiting for tests
+os.environ["RATE_LIMIT_ENABLED"] = "false"
+
 from backend.main import app
 
 client = TestClient(app)
@@ -188,4 +193,281 @@ def test_intro_onboarding_and_avatar_upload():
     assert me_res.status_code == 200
     assert me_res.json()["avatar_url"] == upload_data["avatar_url"]
     assert me_res.json()["display_name"] == "Sarah"
+
+
+def test_media_upload_image():
+    _, headers = account()
+    # Create entry first
+    entry_res = client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-24T12:00:00",
+        "title": "Media Test",
+        "blocks": []
+    })
+    assert entry_res.status_code == 201
+    entry_id = entry_res.json()["id"]
+
+    # Upload image
+    fake_img = io.BytesIO(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82")
+    fake_img.name = "test.png"
+    upload_res = client.post(f"/api/media/upload/{entry_id}?kind=image", files={"file": ("test.png", fake_img, "image/png")}, headers=headers)
+    assert upload_res.status_code == 200
+    data = upload_res.json()
+    assert data["type"] == "image"
+    assert data["url"].startswith("/uploads/")
+    block_id = data["id"]
+
+    # Verify block was added to entry
+    entry_check = client.get(f"/api/entries/{entry_id}", headers=headers)
+    assert entry_check.status_code == 200
+    blocks = entry_check.json()["blocks"]
+    assert len(blocks) == 1
+    assert blocks[0]["id"] == block_id
+    assert blocks[0]["type"] == "image"
+
+
+def test_media_upload_rejects_wrong_type():
+    _, headers = account()
+    entry_res = client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-24T12:00:00",
+        "title": "Media Test",
+        "blocks": []
+    })
+    entry_id = entry_res.json()["id"]
+
+    # Try to upload text file as image
+    fake_text = io.BytesIO(b"not an image")
+    upload_res = client.post(f"/api/media/upload/{entry_id}?kind=image", files={"file": ("test.txt", fake_text, "text/plain")}, headers=headers)
+    assert upload_res.status_code == 415
+
+
+def test_category_crud():
+    _, headers = account()
+    # Create
+    create_res = client.post("/api/categories", headers=headers, json={"name": "Work", "icon": "💼", "color": "#ff5722"})
+    assert create_res.status_code == 201
+    cat = create_res.json()
+    cat_id = cat["id"]
+    assert cat["name"] == "Work"
+    assert cat["icon"] == "💼"
+    assert cat["color"] == "#ff5722"
+
+    # List
+    list_res = client.get("/api/categories", headers=headers)
+    assert list_res.status_code == 200
+    categories = list_res.json()
+    assert len(categories) == 1
+    assert categories[0]["id"] == cat_id
+
+    # Update
+    update_res = client.patch(f"/api/categories/{cat_id}", headers=headers, json={"name": "Personal", "icon": "🏠", "color": "#4caf50"})
+    assert update_res.status_code == 200
+    updated = update_res.json()
+    assert updated["name"] == "Personal"
+    assert updated["icon"] == "🏠"
+    assert updated["color"] == "#4caf50"
+
+    # Delete
+    del_res = client.delete(f"/api/categories/{cat_id}", headers=headers)
+    assert del_res.status_code == 204
+
+    # Verify deleted
+    list_res = client.get("/api/categories", headers=headers)
+    assert list_res.status_code == 200
+    assert len(list_res.json()) == 0
+
+
+def test_category_duplicate_rejected():
+    _, headers = account()
+    client.post("/api/categories", headers=headers, json={"name": "Work", "icon": "💼", "color": "#ff5722"})
+    dup_res = client.post("/api/categories", headers=headers, json={"name": "Work", "icon": "💼", "color": "#ff5722"})
+    assert dup_res.status_code == 409
+
+
+def test_search_pagination():
+    _, headers = account()
+    # Create 5 entries
+    for i in range(5):
+        client.post("/api/entries", headers=headers, json={
+            "entry_date": f"2026-09-{20+i:02d}T12:00:00",
+            "title": f"Entry {i}",
+            "tags": ["tag1"],
+            "blocks": [{"type": "text", "content": f"Content {i}", "position": 0}]
+        })
+
+    # Page 1
+    page1 = client.get("/api/entries/search/query?q=tag1&page=1&page_size=2", headers=headers)
+    assert page1.status_code == 200
+    data1 = page1.json()
+    assert data1["page"] == 1
+    assert data1["page_size"] == 2
+    assert data1["total"] == 5
+    assert len(data1["items"]) == 2
+
+    # Page 2
+    page2 = client.get("/api/entries/search/query?q=tag1&page=2&page_size=2", headers=headers)
+    assert page2.status_code == 200
+    data2 = page2.json()
+    assert data2["page"] == 2
+    assert len(data2["items"]) == 2
+
+    # Page 3 (last page, 1 item)
+    page3 = client.get("/api/entries/search/query?q=tag1&page=3&page_size=2", headers=headers)
+    assert page3.status_code == 200
+    data3 = page3.json()
+    assert data3["page"] == 3
+    assert len(data3["items"]) == 1
+
+
+def test_entries_list_pagination():
+    _, headers = account()
+    for i in range(5):
+        client.post("/api/entries", headers=headers, json={
+            "entry_date": f"2026-09-{20+i:02d}T12:00:00",
+            "title": f"Entry {i}",
+            "blocks": []
+        })
+
+    page1 = client.get("/api/entries?page=1&page_size=2", headers=headers)
+    assert page1.status_code == 200
+    data1 = page1.json()
+    assert data1["page"] == 1
+    assert data1["page_size"] == 2
+    assert data1["total"] == 5
+    assert len(data1["items"]) == 2
+
+    page2 = client.get("/api/entries?page=2&page_size=2", headers=headers)
+    assert page2.status_code == 200
+    assert len(page2.json()["items"]) == 2
+
+
+def test_soft_delete_and_restore():
+    _, headers = account()
+    # Create entry
+    entry_res = client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-24T12:00:00",
+        "title": "To Delete",
+        "blocks": [{"type": "text", "content": "Will be deleted", "position": 0}]
+    })
+    assert entry_res.status_code == 201
+    entry_id = entry_res.json()["id"]
+
+    # Soft delete
+    del_res = client.patch(f"/api/entries/{entry_id}/delete", headers=headers)
+    assert del_res.status_code == 200
+    assert del_res.json()["deleted_at"] is not None
+
+    # Entry should not appear in normal list
+    list_res = client.get("/api/entries", headers=headers)
+    assert list_res.status_code == 200
+    assert list_res.json()["total"] == 0
+
+    # But should appear in trash
+    trash_res = client.get("/api/entries/trash", headers=headers)
+    assert trash_res.status_code == 200
+    assert trash_res.json()["total"] == 1
+    assert trash_res.json()["items"][0]["id"] == entry_id
+
+    # Restore
+    restore_res = client.post(f"/api/entries/{entry_id}/restore", headers=headers)
+    assert restore_res.status_code == 200
+    assert restore_res.json()["deleted_at"] is None
+
+    # Entry should appear in normal list again
+    list_res = client.get("/api/entries", headers=headers)
+    assert list_res.status_code == 200
+    assert list_res.json()["total"] == 1
+
+
+def test_hard_delete_permanently_removes():
+    _, headers = account()
+    entry_res = client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-24T12:00:00",
+        "title": "Hard Delete",
+        "blocks": []
+    })
+    entry_id = entry_res.json()["id"]
+
+    # Soft delete first
+    client.patch(f"/api/entries/{entry_id}/delete", headers=headers)
+
+    # Hard delete
+    hard_del = client.delete(f"/api/entries/{entry_id}", headers=headers)
+    assert hard_del.status_code == 204
+
+    # Should not appear anywhere
+    list_res = client.get("/api/entries", headers=headers)
+    assert list_res.json()["total"] == 0
+    trash_res = client.get("/api/entries/trash", headers=headers)
+    assert trash_res.json()["total"] == 0
+
+    # 404 on get
+    get_res = client.get(f"/api/entries/{entry_id}", headers=headers)
+    assert get_res.status_code == 404
+
+
+def test_backup_excludes_deleted():
+    _, headers = account()
+    # Create normal entry
+    client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-24T12:00:00",
+        "title": "Active Entry",
+        "blocks": []
+    })
+    # Create and soft delete entry
+    del_entry = client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-24T13:00:00",
+        "title": "Deleted Entry",
+        "blocks": []
+    })
+    del_id = del_entry.json()["id"]
+    client.patch(f"/api/entries/{del_id}/delete", headers=headers)
+
+    # Export should only have active entry
+    exp_res = client.get("/api/backup/export", headers=headers)
+    assert exp_res.status_code == 200
+    data = exp_res.json()
+    assert len(data["entries"]) == 1
+    assert data["entries"][0]["title"] == "Active Entry"
+
+
+def test_search_fts():
+    _, headers = account()
+    # Create entries with searchable content
+    client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-24T12:00:00",
+        "title": "Sunset walk",
+        "blocks": [{"type": "text", "content": "Beautiful golden sunset", "position": 0}]
+    })
+    client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-25T12:00:00",
+        "title": "Morning run",
+        "blocks": [{"type": "text", "content": "Early morning jogging", "position": 0}]
+    })
+    client.post("/api/entries", headers=headers, json={
+        "entry_date": "2026-09-26T12:00:00",
+        "title": "Beach day",
+        "blocks": [{"type": "text", "content": "Sunset at the beach", "position": 0}]
+    })
+
+    # FTS search for "sunset"
+    fts_res = client.get("/api/entries/search/fts?q=sunset", headers=headers)
+    assert fts_res.status_code == 200
+    data = fts_res.json()
+    assert data["total"] == 2
+    titles = [e["title"] for e in data["items"]]
+    assert "Sunset walk" in titles
+    assert "Beach day" in titles
+
+    # FTS search for "morning"
+    fts_res = client.get("/api/entries/search/fts?q=morning", headers=headers)
+    assert fts_res.status_code == 200
+    assert fts_res.json()["total"] == 1
+
+    # FTS search with pagination
+    fts_res = client.get("/api/entries/search/fts?q=sunset&page=1&page_size=1", headers=headers)
+    assert fts_res.status_code == 200
+    data = fts_res.json()
+    assert data["page"] == 1
+    assert data["page_size"] == 1
+    assert len(data["items"]) == 1
 

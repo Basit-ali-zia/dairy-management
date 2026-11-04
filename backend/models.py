@@ -80,6 +80,7 @@ class EntryOut(BaseModel):
     blocks: list[BlockOut]
     created_at: datetime
     updated_at: Optional[datetime]
+    deleted_at: Optional[datetime] = None
 
 class CategoryIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
@@ -98,4 +99,6 @@ class PageOut(BaseModel):
 
 class SearchOut(BaseModel):
     items: list[EntryOut]
+    page: int
+    page_size: int
     total: int

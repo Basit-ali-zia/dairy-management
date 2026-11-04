@@ -1,17 +1,24 @@
 import os
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .database import Base, engine, UPLOADS_DIR, PROJECT_DIR
+from .database import Base, engine, UPLOADS_DIR, PROJECT_DIR, init_fts
 from sqlalchemy import inspect, text
 from .routes.auth import router as auth_router
 from .routes.entries import router as entries_router
 from .routes.categories import router as categories_router
 from .routes.media import router as media_router
 from .routes.backup import router as backup_router
+from .rate_limiter import limiter
+from .logging_config import setup_logging
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+
+setup_logging()
 
 Base.metadata.create_all(bind=engine)
+init_fts(engine)
 if "color" not in {column["name"] for column in inspect(engine).get_columns("categories")}:
 	with engine.begin() as connection:
 		connection.execute(text("ALTER TABLE categories ADD COLUMN color VARCHAR(20) DEFAULT '#d87983'"))
@@ -21,11 +28,14 @@ with engine.begin() as connection:
 	if "age_range" not in user_columns: connection.execute(text("ALTER TABLE users ADD COLUMN age_range VARCHAR(16)"))
 	if "avatar_url" not in user_columns: connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255)"))
 	if "display_name" not in user_columns: connection.execute(text("ALTER TABLE users ADD COLUMN display_name VARCHAR(100)"))
+
 app = FastAPI(title="My Diary API", version="3.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 @app.middleware("http")
-async def security_headers(request, call_next):
+async def security_headers(request: Request, call_next):
 	response = await call_next(request)
 	response.headers["X-Content-Type-Options"] = "nosniff"
 	response.headers["X-Frame-Options"] = "DENY"

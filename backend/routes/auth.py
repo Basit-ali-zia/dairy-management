@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from ..auth import create_token, get_current_user, get_db, hash_value, verify_value
 from ..database import User
 from ..models import LoginRequest, RecoveryOut, ResetPassword, TokenOut, UserCreate, UserOut, UserSettings
+from ..rate_limiter import limiter
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -10,7 +11,8 @@ def output(user: User) -> UserOut:
     return UserOut.model_validate(user)
 
 @router.post("/register", response_model=TokenOut, status_code=201)
-def register(data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, data: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter((User.username == data.username.strip()) | (User.email == data.email.strip().lower())).first():
         raise HTTPException(409, "Username or email already exists")
     user = User(
@@ -24,28 +26,33 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     return TokenOut(access_token=create_token(user.id), user=output(user))
 
 @router.post("/login", response_model=TokenOut)
-def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data.username.strip()).first()
     if not user or not verify_value(data.password, user.password_hash):
         raise HTTPException(401, "Invalid username or password")
     return TokenOut(access_token=create_token(user.id), user=output(user))
 
 @router.post("/logout")
-def logout():
+@limiter.limit("20/minute")
+def logout(request: Request):
     return {"message": "Logged out"}
 
 @router.get("/me", response_model=UserOut)
-def me(user: User = Depends(get_current_user)):
+@limiter.limit("60/minute")
+def me(request: Request, user: User = Depends(get_current_user)):
     return output(user)
 
 @router.get("/recovery-question", response_model=RecoveryOut)
-def recovery_question(username: str, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def recovery_question(request: Request, username: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username.strip()).first()
     if not user: raise HTTPException(404, "User not found")
     return RecoveryOut(recovery_question=user.recovery_question)
 
 @router.post("/forgot-password")
-def forgot_password(data: ResetPassword, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def forgot_password(request: Request, data: ResetPassword, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data.username.strip()).first()
     if not user:
         raise HTTPException(404, "User not found")
